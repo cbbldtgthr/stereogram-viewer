@@ -217,6 +217,43 @@
     }
     #zoom-badge.visible { opacity: 1; }
 
+    /* ── Instructions bar ── */
+    #instructions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 6px 16px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .instr {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 20px;
+      padding: 0 5px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: var(--text);
+      line-height: 1;
+    }
+
     /* ── Crosshair cursor ── */
     .crosshair {
       position: absolute;
@@ -322,6 +359,24 @@
     </div>
 
     <div id="zoom-badge">100%</div>
+  </div>
+
+  <!-- Instructions -->
+  <div id="instructions">
+    <div class="instr">
+      <span class="key">scroll</span>
+      <span>or</span>
+      <span class="key">↑</span><span class="key">↓</span>
+      <span>zoom</span>
+    </div>
+    <div class="instr">
+      <span class="key">drag</span>
+      <span>pan</span>
+    </div>
+    <div class="instr">
+      <span class="key">←</span><span class="key">→</span>
+      <span>size</span>
+    </div>
   </div>
 
 </div>
