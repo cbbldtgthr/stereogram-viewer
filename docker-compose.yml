@@ -1,0 +1,11 @@
+services:
+  stereogram-viewer:
+    build: .
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 32m
+          cpus: "0.25"
