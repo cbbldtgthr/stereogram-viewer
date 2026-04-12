@@ -2,7 +2,7 @@ services:
   stereogram-viewer:
     build: .
     ports:
-      - "8080:80"
+      - "8083:80"
     restart: unless-stopped
     deploy:
       resources:
