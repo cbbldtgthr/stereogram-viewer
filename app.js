@@ -175,8 +175,8 @@
     if (!val) return;
     leftLoaded  = false;
     rightLoaded = false;
-    loadFromUrl(`examples/${val}/left.svg`,  imgLeft,  nameLeft,  'left');
-    loadFromUrl(`examples/${val}/right.svg`, imgRight, nameRight, 'right');
+    loadFromUrl(`examples/${val}/left.jpg`,  imgLeft,  nameLeft,  'left');
+    loadFromUrl(`examples/${val}/right.jpg`, imgRight, nameRight, 'right');
     selectExample.value = '';
   });
 
@@ -411,14 +411,6 @@
   applyLayout();
   centerRow();
   applyImageTransforms();
-
-  // Preload the selected example
-  const preload = selectExample.value;
-  if (preload) {
-    leftLoaded = false; rightLoaded = false;
-    loadFromUrl(`examples/${preload}/left.jpg`,  imgLeft,  nameLeft,  'left');
-    loadFromUrl(`examples/${preload}/right.jpg`, imgRight, nameRight, 'right');
-  }
 
   window.addEventListener('resize', () => { updateImgWidth(); applyLayout(); centerRow(); });
 })();
