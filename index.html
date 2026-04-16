@@ -6,83 +6,118 @@
   <title>Stereogram Viewer</title>
   <link rel="icon" href="favicon.ico" sizes="32x32" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
   <!-- Umami: ERR_BLOCKED_BY_CLIENT in DevTools is ad blockers / privacy tools blocking the tracker -->
   <script defer src="https://umami.cloete.link/script.js" data-website-id="22cc2504-e600-4863-a48e-a114857abe0d"></script>
 </head>
 <body>
 <div id="app">
 
-  <!-- Top bar -->
-  <div id="topbar">
-    <h1>Stereogram Viewer</h1>
-    <div class="divider"></div>
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="sidebar-inner">
 
-    <div class="file-group">
-      <span class="file-label">Left</span>
-      <label class="file-btn">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 1a.75.75 0 0 1 .75.75v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5H1.75a.75.75 0 0 1 0-1.5h5.5v-5.5A.75.75 0 0 1 8 1z"/>
-        </svg>
-        Choose
-        <input type="file" id="file-left" accept="image/*" />
-      </label>
-      <span class="file-name" id="name-left">none</span>
+      <div id="sidebar-header">
+        <h1>Stereogram<br>Viewer</h1>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="file-group">
+          <span class="ctrl-label">Left</span>
+          <label class="file-btn">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1a.75.75 0 0 1 .75.75v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5H1.75a.75.75 0 0 1 0-1.5h5.5v-5.5A.75.75 0 0 1 8 1z"/>
+            </svg>
+            Choose
+            <input type="file" id="file-left" accept="image/*" />
+          </label>
+          <span class="file-name" id="name-left">none</span>
+        </div>
+
+        <div class="file-group">
+          <span class="ctrl-label">Right</span>
+          <label class="file-btn">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1a.75.75 0 0 1 .75.75v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5H1.75a.75.75 0 0 1 0-1.5h5.5v-5.5A.75.75 0 0 1 8 1z"/>
+            </svg>
+            Choose
+            <input type="file" id="file-right" accept="image/*" />
+          </label>
+          <span class="file-name" id="name-right">none</span>
+        </div>
+      </div>
+
+      <div class="sidebar-sep"></div>
+
+      <div class="sidebar-section">
+        <div class="ctrl-group">
+          <span class="ctrl-label">Size</span>
+          <div class="ctrl-row">
+            <input type="range" id="ctrl-size" min="10" max="100" value="50" step="1" />
+            <span class="ctrl-value" id="val-size">50%</span>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <span class="ctrl-label">Gap</span>
+          <div class="ctrl-row">
+            <input type="range" id="ctrl-gap" min="0" max="30" value="4" step="1" />
+            <span class="ctrl-value" id="val-gap">4 px</span>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <span class="ctrl-label">Crop</span>
+          <div class="ctrl-row">
+            <input type="range" id="ctrl-crop" min="10" max="100" value="100" step="1" />
+            <span class="ctrl-value" id="val-crop">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-sep"></div>
+
+      <div class="sidebar-section">
+        <div class="ctrl-group">
+          <span class="ctrl-label">Examples</span>
+        </div>
+        <select id="select-example">
+          <option value="" selected>— load example —</option>
+          <option value="flowers">Flowers</option>
+          <option value="cathedral_landscape">Cathedral landscape</option>
+          <option value="cathedral_portrait">Cathedral portrait</option>
+        </select>
+      </div>
+
+      <div class="sidebar-sep"></div>
+
+      <div class="sidebar-section">
+        <button class="btn" id="btn-swap">⇄ Swap</button>
+        <button class="btn" id="btn-center">Reset pan</button>
+        <button class="btn" id="btn-reset">Reset zoom</button>
+      </div>
+
+      <!-- spacer pushes instructions to bottom -->
+      <div style="flex:1"></div>
+
+      <div id="instructions">
+        <div class="instr"><span class="key">scroll</span> zoom</div>
+        <div class="instr"><span class="key">drag</span> pan</div>
+        <div class="instr"><span class="key">← →</span> size</div>
+        <div class="instr"><span class="key">↑ ↓</span> zoom</div>
+      </div>
+
     </div>
-
-    <div class="file-group">
-      <span class="file-label">Right</span>
-      <label class="file-btn">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 1a.75.75 0 0 1 .75.75v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5H1.75a.75.75 0 0 1 0-1.5h5.5v-5.5A.75.75 0 0 1 8 1z"/>
-        </svg>
-        Choose
-        <input type="file" id="file-right" accept="image/*" />
-      </label>
-      <span class="file-name" id="name-right">none</span>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="ctrl-group">
-      <span class="ctrl-label">Size</span>
-      <input type="range" id="ctrl-size" min="10" max="100" value="50" step="1" />
-      <span class="ctrl-value" id="val-size">50%</span>
-    </div>
-
-    <div class="ctrl-group">
-      <span class="ctrl-label">Gap</span>
-      <input type="range" id="ctrl-gap" min="0" max="30" value="4" step="1" />
-      <span class="ctrl-value" id="val-gap">4 px</span>
-    </div>
-
-    <div class="ctrl-group">
-      <span class="ctrl-label">Crop</span>
-      <input type="range" id="ctrl-crop" min="10" max="100" value="100" step="1" />
-      <span class="ctrl-value" id="val-crop">100%</span>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="ctrl-group">
-      <span class="ctrl-label">Examples</span>
-      <select id="select-example">
-        <option value="" selected>— load example —</option>
-        <option value="flowers">Flowers</option>
-        <option value="cathedral_landscape">Cathedral landscape</option>
-        <option value="cathedral_portrait">Cathedral portrait</option>
-      </select>
-    </div>
-
-    <div class="divider"></div>
-
-    <button class="btn" id="btn-swap">⇄ Swap</button>
-    <button class="btn" id="btn-center">Reset pan</button>
-    <button class="btn" id="btn-reset">Reset zoom</button>
   </div>
 
   <!-- Viewer -->
   <div id="viewer">
+    <!-- Sidebar toggle: floats top-left of the viewer -->
+    <button id="sidebar-toggle" title="Toggle sidebar" aria-label="Toggle sidebar">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M3.5 3a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 4a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 4a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9z"/>
+      </svg>
+    </button>
     <div id="hint">
       <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
         <rect x="4" y="12" width="24" height="40" rx="3"/>
@@ -111,25 +146,7 @@
     <div id="zoom-badge">100%</div>
   </div>
 
-  <!-- Instructions -->
-  <div id="instructions">
-    <div class="instr">
-      <span class="key">scroll</span>
-      <span>or</span>
-      <span class="key">↑</span><span class="key">↓</span>
-      <span>zoom</span>
-    </div>
-    <div class="instr">
-      <span class="key">drag</span>
-      <span>pan</span>
-    </div>
-    <div class="instr">
-      <span class="key">←</span><span class="key">→</span>
-      <span>size</span>
-    </div>
-  </div>
-
 </div>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

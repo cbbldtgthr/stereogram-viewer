@@ -31,3 +31,6 @@ Then open **http://localhost:8083** (see `docker-compose.yml` for the host port)
 
 Image is `nginx:alpine`; compose caps memory at 32 MB for a tiny footprint.
 
+## License
+
+[MIT](LICENSE)

@@ -1,6 +1,5 @@
 (() => {
   // ── Constants ──────────────────────────────────────────────────────────
-  const MIN_SCALE = 0.5;
   const MAX_SCALE = 20;
 
   // ── State ──────────────────────────────────────────────────────────────
@@ -49,7 +48,9 @@
   const btnSwap   = document.getElementById('btn-swap');
   const btnCenter = document.getElementById('btn-center');
   const btnReset  = document.getElementById('btn-reset');
-  const selectExample = document.getElementById('select-example');
+  const selectExample    = document.getElementById('select-example');
+  const sidebar          = document.getElementById('sidebar');
+  const btnSidebarToggle = document.getElementById('sidebar-toggle');
 
   // ── Helpers ────────────────────────────────────────────────────────────
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -83,6 +84,70 @@
   function visibleWidth() { return Math.round(imgWidth * cropPct / 100); }
   // X offset to centre the full image inside the cropped frame
   function cropOffsetX()  { return (visibleWidth() - imgWidth) / 2; }
+
+  /** Unscaled pixel height of each image at current imgWidth */
+  function leftImageHeight() {
+    if (!imgLeft.naturalWidth) return 0;
+    return (imgWidth / imgLeft.naturalWidth) * imgLeft.naturalHeight;
+  }
+  function rightImageHeight() {
+    if (!imgRight.naturalWidth) return 0;
+    return (imgWidth / imgRight.naturalWidth) * imgRight.naturalHeight;
+  }
+
+  /** Smallest scale where the image still covers the frame (no empty margin). */
+  function minScale() {
+    if (!imgLeft.naturalWidth || !imgRight.naturalWidth || imgWidth <= 0) return 0.25;
+    const fw = visibleWidth();
+    const fh = frameHeight();
+    const lh = leftImageHeight();
+    const rh = rightImageHeight();
+    const hMax = Math.max(lh, rh) || fh;
+    const sx = fw / imgWidth;
+    const sy = fh / hMax;
+    return Math.max(sx, sy, 0.02);
+  }
+
+  /**
+   * Keep pan/zoom inside the image edges (no empty beyond the photo inside each frame).
+   * Both images share ltx/lty; vertical clamp uses the taller image so both stay aligned.
+   */
+  function clampPan() {
+    if (!imgLeft.naturalWidth || !imgRight.naturalWidth || imgWidth <= 0) return;
+
+    imgScale = clamp(imgScale, minScale(), MAX_SCALE);
+
+    const fw = visibleWidth();
+    const fh = frameHeight();
+    const ox = cropOffsetX();
+    const iw = imgWidth * imgScale;
+
+    const lh = leftImageHeight();
+    const rh = rightImageHeight();
+    const hMax = Math.max(lh, rh) || fh;
+    const hScaled = hMax * imgScale;
+
+    // Horizontal: scaled width must cover [0, fw]
+    if (iw >= fw) {
+      const minL = fw - ox - iw;
+      const maxL = -ox;
+      ltx = clamp(ltx, minL, maxL);
+    } else {
+      ltx = (fw - iw) / 2 - ox;
+    }
+
+    // Vertical: use taller image height so pan limits match the shared frame height
+    if (hScaled >= fh) {
+      const minT = fh - hScaled;
+      const maxT = 0;
+      lty = clamp(lty, minT, maxT);
+    } else {
+      lty = (fh - hScaled) / 2;
+    }
+
+    rtx = ltx;
+    rty = lty;
+  }
 
   // ── Transforms ─────────────────────────────────────────────────────────
   function applyImageTransforms() {
@@ -121,6 +186,7 @@
   function resetImagePan() {
     ltx = 0; lty = 0;
     rtx = 0; rty = 0;
+    clampPan();
     applyImageTransforms();
   }
 
@@ -142,10 +208,10 @@
       if (side === 'left')  leftLoaded  = true;
       if (side === 'right') rightLoaded = true;
       hint.classList.add('hidden');
-      resetImageZoom();
       updateImgWidth();
       applyLayout();
       centerRow();
+      resetImageZoom();
     };
     imgEl.src = url;
   }
@@ -162,10 +228,10 @@
       if (side === 'left')  leftLoaded  = true;
       if (side === 'right') rightLoaded = true;
       hint.classList.add('hidden');
-      resetImageZoom();
       updateImgWidth();
       applyLayout();
       centerRow();
+      resetImageZoom();
     };
     imgEl.src = url;
   }
@@ -184,10 +250,10 @@
   ctrlSize.addEventListener('input', () => {
     sizePct = +ctrlSize.value;
     valSize.textContent = sizePct + '%';
-    resetImageZoom();
     updateImgWidth();
     applyLayout();
     centerRow();
+    resetImageZoom();
   });
 
   ctrlGap.addEventListener('input', () => {
@@ -195,6 +261,8 @@
     valGap.textContent = gap + ' px';
     applyLayout();
     centerRow();
+    clampPan();
+    applyImageTransforms();
   });
 
   ctrlCrop.addEventListener('input', () => {
@@ -203,6 +271,7 @@
     updateImgWidth();
     applyLayout();
     centerRow();
+    clampPan();
     applyImageTransforms();
   });
 
@@ -249,17 +318,18 @@
     else                { cx = leftRect.width / 2; cy = leftRect.height / 2; }
 
     const zoomFactor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-    const newScale   = clamp(imgScale * zoomFactor, MIN_SCALE, MAX_SCALE);
+    const newScale   = clamp(imgScale * zoomFactor, minScale(), MAX_SCALE);
 
     const ox   = cropOffsetX();
     const imgX = (cx - (ltx + ox)) / imgScale;
     const imgY = (cy - lty) / imgScale;
 
+    imgScale = newScale;
     ltx = cx - imgX * newScale - ox;
     lty = cy - imgY * newScale;
     rtx = ltx; rty = lty;
 
-    imgScale = newScale;
+    clampPan();
     applyImageTransforms();
     showZoomBadge();
   }, { passive: false });
@@ -280,6 +350,7 @@
     ltx = ltxStart + (e.clientX - dragStartX);
     lty = ltyStart + (e.clientY - dragStartY);
     rtx = ltx; rty = lty;
+    clampPan();
     applyImageTransforms();
   });
 
@@ -307,6 +378,7 @@
       ltx = ltxStart + (e.touches[0].clientX - dragStartX);
       lty = ltyStart + (e.touches[0].clientY - dragStartY);
       rtx = ltx; rty = lty;
+      clampPan();
       applyImageTransforms();
     } else if (e.touches.length === 2 && lastTouches?.length >= 2) {
       const prev     = lastTouches;
@@ -318,14 +390,15 @@
       const cx         = midX - leftRect.left;
       const cy         = midY - leftRect.top;
       const zoomFactor = newDist / prevDist;
-      const newScale   = clamp(imgScale * zoomFactor, MIN_SCALE, MAX_SCALE);
+      const newScale   = clamp(imgScale * zoomFactor, minScale(), MAX_SCALE);
       const ox   = cropOffsetX();
       const imgX = (cx - (ltx + ox)) / imgScale;
       const imgY = (cy - lty) / imgScale;
+      imgScale = newScale;
       ltx = cx - imgX * newScale - ox;
       lty = cy - imgY * newScale;
       rtx = ltx; rty = lty;
-      imgScale = newScale;
+      clampPan();
       applyImageTransforms();
       showZoomBadge();
     }
@@ -382,25 +455,26 @@
       sizePct = clamp(sizePct + (e.key === 'ArrowRight' ? 2 : -2), 10, 100);
       ctrlSize.value = sizePct;
       valSize.textContent = sizePct + '%';
-      resetImageZoom();
       updateImgWidth();
       applyLayout();
       centerRow();
+      resetImageZoom();
     }
 
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
       const zoomFactor = e.key === 'ArrowUp' ? 1.1 : 1 / 1.1;
-      const newScale   = clamp(imgScale * zoomFactor, MIN_SCALE, MAX_SCALE);
+      const newScale   = clamp(imgScale * zoomFactor, minScale(), MAX_SCALE);
       const cx = frameLeft.clientWidth  / 2;
       const cy = frameLeft.clientHeight / 2;
       const ox   = cropOffsetX();
       const imgX = (cx - (ltx + ox)) / imgScale;
       const imgY = (cy - lty) / imgScale;
+      imgScale = newScale;
       ltx = cx - imgX * newScale - ox;
       lty = cy - imgY * newScale;
       rtx = ltx; rty = lty;
-      imgScale = newScale;
+      clampPan();
       applyImageTransforms();
       showZoomBadge();
     }
@@ -410,7 +484,26 @@
   updateImgWidth();
   applyLayout();
   centerRow();
+  clampPan();
   applyImageTransforms();
 
-  window.addEventListener('resize', () => { updateImgWidth(); applyLayout(); centerRow(); });
+  window.addEventListener('resize', () => {
+    updateImgWidth();
+    applyLayout();
+    centerRow();
+    clampPan();
+    applyImageTransforms();
+  });
+
+  // ── Sidebar toggle ─────────────────────────────────────────────────────
+  btnSidebarToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    setTimeout(() => {
+      updateImgWidth();
+      applyLayout();
+      centerRow();
+      clampPan();
+      applyImageTransforms();
+    }, 230);
+  });
 })();
