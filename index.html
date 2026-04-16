@@ -6,6 +6,8 @@
   <title>Stereogram Viewer</title>
   <link rel="icon" href="favicon.ico" sizes="32x32" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1a1a1a" />
   <link rel="stylesheet" href="style.css?v=8" />
   <!-- Umami: ERR_BLOCKED_BY_CLIENT in DevTools is ad blockers / privacy tools blocking the tracker -->
   <script defer src="https://umami.cloete.link/script.js" data-website-id="22cc2504-e600-4863-a48e-a114857abe0d"></script>
@@ -150,5 +152,10 @@
 
 </div>
 <script src="app.js?v=11"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
 </body>
 </html>
