@@ -267,6 +267,21 @@ select option { background: var(--surface2); }
   flex-shrink: 0;
 }
 
+/* GitHub link at bottom of sidebar */
+#github-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color .15s;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#github-link:hover { color: var(--text); }
+
 /* ── Viewer (full viewport — layout math uses full width/height) ── */
 #viewer {
   position: relative;
