@@ -1,9 +1,10 @@
 (() => {
   // ── Constants ──────────────────────────────────────────────────────────
   const MAX_SCALE = 20;
+  const MOBILE_MQ = '(max-width: 768px)';
 
   // ── State ──────────────────────────────────────────────────────────────
-  let sizePct  = 50;
+  let sizePct = window.matchMedia(MOBILE_MQ).matches ? 100 : 50;
   let imgWidth = 0;
   let gap      = 4;
   let cropPct  = 100;
@@ -46,11 +47,15 @@
   const valCrop    = document.getElementById('val-crop');
 
   const btnSwap   = document.getElementById('btn-swap');
+  const btnFit    = document.getElementById('btn-fit');
   const btnCenter = document.getElementById('btn-center');
   const btnReset  = document.getElementById('btn-reset');
   const selectExample    = document.getElementById('select-example');
   const sidebar          = document.getElementById('sidebar');
   const btnSidebarToggle = document.getElementById('sidebar-toggle');
+
+  ctrlSize.value = sizePct;
+  valSize.textContent = sizePct + '%';
 
   // ── Helpers ────────────────────────────────────────────────────────────
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -273,6 +278,16 @@
     centerRow();
     clampPan();
     applyImageTransforms();
+  });
+
+  btnFit.addEventListener('click', () => {
+    sizePct = 100;
+    ctrlSize.value = 100;
+    valSize.textContent = '100%';
+    updateImgWidth();
+    applyLayout();
+    centerRow();
+    resetImageZoom();
   });
 
   btnSwap.addEventListener('click', () => {

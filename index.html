@@ -6,7 +6,7 @@
   <title>Stereogram Viewer</title>
   <link rel="icon" href="favicon.ico" sizes="32x32" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=8" />
   <!-- Umami: ERR_BLOCKED_BY_CLIENT in DevTools is ad blockers / privacy tools blocking the tracker -->
   <script defer src="https://umami.cloete.link/script.js" data-website-id="22cc2504-e600-4863-a48e-a114857abe0d"></script>
 </head>
@@ -93,6 +93,7 @@
 
       <div class="sidebar-section">
         <button class="btn" id="btn-swap">⇄ Swap</button>
+        <button class="btn" id="btn-fit">Fit</button>
         <button class="btn" id="btn-center">Reset pan</button>
         <button class="btn" id="btn-reset">Reset zoom</button>
       </div>
@@ -112,12 +113,6 @@
 
   <!-- Viewer -->
   <div id="viewer">
-    <!-- Sidebar toggle: floats top-left of the viewer -->
-    <button id="sidebar-toggle" title="Toggle sidebar" aria-label="Toggle sidebar">
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M3.5 3a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 4a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 4a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9z"/>
-      </svg>
-    </button>
     <div id="hint">
       <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
         <rect x="4" y="12" width="24" height="40" rx="3"/>
@@ -146,7 +141,14 @@
     <div id="zoom-badge">100%</div>
   </div>
 
+  <!-- Outside #viewer so z-index can sit above the overlay sidebar (stacking context fix) -->
+  <button id="sidebar-toggle" title="Toggle sidebar" aria-label="Toggle sidebar">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M3.5 3a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 4a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 4a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9z"/>
+    </svg>
+  </button>
+
 </div>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>
