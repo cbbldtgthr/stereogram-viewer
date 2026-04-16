@@ -141,6 +141,15 @@ html, body {
   align-self: flex-start;
 }
 .file-btn:hover { border-color: var(--accent); background: #2a2a32; }
+
+.file-btn-pair {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--text);
+  width: 100%;
+  justify-content: center;
+}
+.file-btn-pair:hover { background: var(--accent); border-color: var(--accent); }
 .file-btn input[type=file] {
   position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0;
 }

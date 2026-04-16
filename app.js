@@ -34,6 +34,7 @@
   const crossLeft  = document.getElementById('cross-left');
   const crossRight = document.getElementById('cross-right');
 
+  const filePair   = document.getElementById('file-pair');
   const fileLeft   = document.getElementById('file-left');
   const fileRight  = document.getElementById('file-right');
   const nameLeft   = document.getElementById('name-left');
@@ -223,6 +224,29 @@
 
   fileLeft.addEventListener('change',  () => loadFile(fileLeft,  imgLeft,  nameLeft,  'left'));
   fileRight.addEventListener('change', () => loadFile(fileRight, imgRight, nameRight, 'right'));
+
+  filePair.addEventListener('change', () => {
+    const files = Array.from(filePair.files).sort((a, b) => a.name.localeCompare(b.name));
+    if (files.length < 2) return;
+    function loadRaw(file, imgEl, nameEl, side) {
+      nameEl.textContent = file.name;
+      nameEl.classList.add('loaded');
+      const url = URL.createObjectURL(file);
+      imgEl.onload = () => {
+        if (side === 'left')  leftLoaded  = true;
+        if (side === 'right') rightLoaded = true;
+        hint.classList.add('hidden');
+        updateImgWidth();
+        applyLayout();
+        centerRow();
+        resetImageZoom();
+      };
+      imgEl.src = url;
+    }
+    loadRaw(files[0], imgLeft,  nameLeft,  'left');
+    loadRaw(files[1], imgRight, nameRight, 'right');
+    filePair.value = '';
+  });
 
   // ── Example loader ─────────────────────────────────────────────────────
   function loadFromUrl(url, imgEl, nameEl, side) {
