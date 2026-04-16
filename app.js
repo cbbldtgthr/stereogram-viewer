@@ -375,20 +375,34 @@
   });
 
   // ── Touch support ──────────────────────────────────────────────────────
+  /** Snapshot touches — TouchList is not safe to keep after the event returns. */
+  function touchSnapshot(touches) {
+    if (!touches || touches.length === 0) return null;
+    return Array.from(touches).map((t) => ({ clientX: t.clientX, clientY: t.clientY }));
+  }
+
+  function seedSingleTouchPan(touch) {
+    dragStartX = touch.clientX;
+    dragStartY = touch.clientY;
+    ltxStart   = ltx;
+    ltyStart   = lty;
+  }
+
   let lastTouches = null;
 
   viewer.addEventListener('touchstart', (e) => {
-    lastTouches = e.touches;
-    if (e.touches.length === 1) {
-      dragStartX = e.touches[0].clientX;
-      dragStartY = e.touches[0].clientY;
-      ltxStart   = ltx;
-      ltyStart   = lty;
-    }
+    lastTouches = touchSnapshot(e.touches);
+    if (e.touches.length === 1) seedSingleTouchPan(e.touches[0]);
   }, { passive: true });
 
   viewer.addEventListener('touchmove', (e) => {
     e.preventDefault();
+
+    // After pinch, one finger remains but we never got touchstart for it — old dragStart would jump the image.
+    if (e.touches.length === 1 && lastTouches?.length === 2) {
+      seedSingleTouchPan(e.touches[0]);
+    }
+
     if (e.touches.length === 1 && lastTouches?.length === 1) {
       ltx = ltxStart + (e.touches[0].clientX - dragStartX);
       lty = ltyStart + (e.touches[0].clientY - dragStartY);
@@ -404,7 +418,7 @@
       const leftRect   = frameLeft.getBoundingClientRect();
       const cx         = midX - leftRect.left;
       const cy         = midY - leftRect.top;
-      const zoomFactor = newDist / prevDist;
+      const zoomFactor = prevDist > 1e-6 ? newDist / prevDist : 1;
       const newScale   = clamp(imgScale * zoomFactor, minScale(), MAX_SCALE);
       const ox   = cropOffsetX();
       const imgX = (cx - (ltx + ox)) / imgScale;
@@ -417,10 +431,16 @@
       applyImageTransforms();
       showZoomBadge();
     }
-    lastTouches = e.touches;
+    lastTouches = touchSnapshot(e.touches);
   }, { passive: false });
 
-  viewer.addEventListener('touchend', () => { lastTouches = null; });
+  function onTouchEndOrCancel(e) {
+    lastTouches = touchSnapshot(e.touches);
+    if (e.touches.length === 1) seedSingleTouchPan(e.touches[0]);
+  }
+
+  viewer.addEventListener('touchend', onTouchEndOrCancel, { passive: true });
+  viewer.addEventListener('touchcancel', onTouchEndOrCancel, { passive: true });
 
   // ── Zoom badge ─────────────────────────────────────────────────────────
   function showZoomBadge() {
