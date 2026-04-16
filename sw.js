@@ -1,8 +1,8 @@
 /**
  * Offline shell. When you change index.html, app.js, style.css, or examples,
- * bump CACHE so clients refetch the precache list.
+ * bump CACHE so old entries are dropped on activate.
  */
-const CACHE = 'stereogram-pwa-v1';
+const CACHE = 'stereogram-pwa-v2';
 
 const PRECACHE_URLS = [
   'index.html',
@@ -50,25 +50,31 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  const indexUrl = new URL('index.html', self.location).href;
+
   if (request.mode === 'navigate') {
-    const indexUrl = new URL('index.html', self.location).href;
     event.respondWith(
       fetch(request).catch(() => caches.match(indexUrl))
     );
     return;
   }
 
+  // Network-first: avoids serving a poisoned cache (e.g. HTML mistaken for app.js)
+  // while still allowing offline once a good response has been cached.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+    (async () => {
+      try {
+        const net = await fetch(request);
+        if (net.ok && net.type === 'basic') {
+          const cache = await caches.open(CACHE);
+          await cache.put(request, net.clone());
         }
-        const copy = response.clone();
-        caches.open(CACHE).then((cache) => cache.put(request, copy));
-        return response;
-      });
-    })
+        return net;
+      } catch {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        return new Response('', { status: 504, statusText: 'Offline' });
+      }
+    })()
   );
 });
