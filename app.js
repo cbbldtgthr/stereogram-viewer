@@ -35,6 +35,7 @@
   const crossRight = document.getElementById('cross-right');
 
   const filePair   = document.getElementById('file-pair');
+  const pairHint   = document.getElementById('pair-hint');
   const fileLeft   = document.getElementById('file-left');
   const fileRight  = document.getElementById('file-right');
   const nameLeft   = document.getElementById('name-left');
@@ -204,34 +205,13 @@
   // ── File loading ───────────────────────────────────────────────────────
   let leftLoaded = false, rightLoaded = false;
 
-  function loadFile(input, imgEl, nameEl, side) {
-    const file = input.files[0];
-    if (!file) return;
+  // FileReader-based loader — more reliable than createObjectURL on Android
+  // (avoids issues with cloud-backed files and browser URL revocation)
+  function loadFileObj(file, imgEl, nameEl, side) {
     nameEl.textContent = file.name;
     nameEl.classList.add('loaded');
-    const url = URL.createObjectURL(file);
-    imgEl.onload = () => {
-      if (side === 'left')  leftLoaded  = true;
-      if (side === 'right') rightLoaded = true;
-      hint.classList.add('hidden');
-      updateImgWidth();
-      applyLayout();
-      centerRow();
-      resetImageZoom();
-    };
-    imgEl.src = url;
-  }
-
-  fileLeft.addEventListener('change',  () => loadFile(fileLeft,  imgLeft,  nameLeft,  'left'));
-  fileRight.addEventListener('change', () => loadFile(fileRight, imgRight, nameRight, 'right'));
-
-  filePair.addEventListener('change', () => {
-    const files = Array.from(filePair.files).sort((a, b) => a.name.localeCompare(b.name));
-    if (files.length < 2) return;
-    function loadRaw(file, imgEl, nameEl, side) {
-      nameEl.textContent = file.name;
-      nameEl.classList.add('loaded');
-      const url = URL.createObjectURL(file);
+    const reader = new FileReader();
+    reader.onload = e => {
       imgEl.onload = () => {
         if (side === 'left')  leftLoaded  = true;
         if (side === 'right') rightLoaded = true;
@@ -241,11 +221,29 @@
         centerRow();
         resetImageZoom();
       };
-      imgEl.src = url;
+      imgEl.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  fileLeft.addEventListener('change',  () => {
+    if (fileLeft.files[0])  loadFileObj(fileLeft.files[0],  imgLeft,  nameLeft,  'left');
+  });
+  fileRight.addEventListener('change', () => {
+    if (fileRight.files[0]) loadFileObj(fileRight.files[0], imgRight, nameRight, 'right');
+  });
+
+  filePair.addEventListener('change', () => {
+    const files = Array.from(filePair.files).sort((a, b) => a.name.localeCompare(b.name));
+    if (files.length < 2) {
+      pairHint.textContent = 'pick 2 · use Files app on Android';
+      pairHint.style.color = 'var(--accent)';
+      setTimeout(() => { pairHint.style.color = ''; }, 2500);
+      return;
     }
-    loadRaw(files[0], imgLeft,  nameLeft,  'left');
-    loadRaw(files[1], imgRight, nameRight, 'right');
-    filePair.value = '';
+    pairHint.style.color = '';
+    loadFileObj(files[0], imgLeft,  nameLeft,  'left');
+    loadFileObj(files[1], imgRight, nameRight, 'right');
   });
 
   // ── Example loader ─────────────────────────────────────────────────────
