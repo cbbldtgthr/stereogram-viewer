@@ -1,10 +1,9 @@
 (() => {
   // ── Constants ──────────────────────────────────────────────────────────
   const MAX_SCALE = 20;
-  const MOBILE_MQ = '(max-width: 768px)';
 
   // ── State ──────────────────────────────────────────────────────────────
-  let sizePct = window.matchMedia(MOBILE_MQ).matches ? 100 : 50;
+  let sizePct = 100;
   let imgWidth = 0;
   let gap      = 4;
   let cropPct  = 100;
@@ -36,10 +35,6 @@
 
   const filePair   = document.getElementById('file-pair');
   const pairHint   = document.getElementById('pair-hint');
-  const fileLeft   = document.getElementById('file-left');
-  const fileRight  = document.getElementById('file-right');
-  const nameLeft   = document.getElementById('name-left');
-  const nameRight  = document.getElementById('name-right');
 
   const ctrlSize   = document.getElementById('ctrl-size');
   const valSize    = document.getElementById('val-size');
@@ -50,8 +45,6 @@
 
   const btnSwap   = document.getElementById('btn-swap');
   const btnFit    = document.getElementById('btn-fit');
-  const btnCenter = document.getElementById('btn-center');
-  const btnReset  = document.getElementById('btn-reset');
   const selectExample    = document.getElementById('select-example');
   const sidebar          = document.getElementById('sidebar');
   const btnSidebarToggle = document.getElementById('sidebar-toggle');
@@ -207,9 +200,7 @@
 
   // FileReader-based loader — more reliable than createObjectURL on Android
   // (avoids issues with cloud-backed files and browser URL revocation)
-  function loadFileObj(file, imgEl, nameEl, side) {
-    nameEl.textContent = file.name;
-    nameEl.classList.add('loaded');
+  function loadFileObj(file, imgEl, side) {
     const reader = new FileReader();
     reader.onload = e => {
       imgEl.onload = () => {
@@ -226,13 +217,6 @@
     reader.readAsDataURL(file);
   }
 
-  fileLeft.addEventListener('change',  () => {
-    if (fileLeft.files[0])  loadFileObj(fileLeft.files[0],  imgLeft,  nameLeft,  'left');
-  });
-  fileRight.addEventListener('change', () => {
-    if (fileRight.files[0]) loadFileObj(fileRight.files[0], imgRight, nameRight, 'right');
-  });
-
   filePair.addEventListener('change', () => {
     const files = Array.from(filePair.files).sort((a, b) => a.name.localeCompare(b.name));
     if (files.length < 2) {
@@ -242,15 +226,12 @@
       return;
     }
     pairHint.style.color = '';
-    loadFileObj(files[0], imgLeft,  nameLeft,  'left');
-    loadFileObj(files[1], imgRight, nameRight, 'right');
+    loadFileObj(files[0], imgLeft,  'left');
+    loadFileObj(files[1], imgRight, 'right');
   });
 
   // ── Example loader ─────────────────────────────────────────────────────
-  function loadFromUrl(url, imgEl, nameEl, side) {
-    const name = url.split('/').slice(-2).join('/');
-    nameEl.textContent = name;
-    nameEl.classList.add('loaded');
+  function loadFromUrl(url, imgEl, side) {
     imgEl.onload = () => {
       if (side === 'left')  leftLoaded  = true;
       if (side === 'right') rightLoaded = true;
@@ -268,8 +249,8 @@
     if (!val) return;
     leftLoaded  = false;
     rightLoaded = false;
-    loadFromUrl(`examples/${val}/left.jpg`,  imgLeft,  nameLeft,  'left');
-    loadFromUrl(`examples/${val}/right.jpg`, imgRight, nameRight, 'right');
+    loadFromUrl(`examples/${val}/left.jpg`,  imgLeft,  'left');
+    loadFromUrl(`examples/${val}/right.jpg`, imgRight, 'right');
     selectExample.value = '';
   });
 
@@ -313,25 +294,11 @@
   });
 
   btnSwap.addEventListener('click', () => {
-    const leftSrc   = imgLeft.src;
-    const rightSrc  = imgRight.src;
-    const leftName  = nameLeft.textContent;
-    const rightName = nameRight.textContent;
-    const leftClass  = nameLeft.className;
-    const rightClass = nameRight.className;
+    const leftSrc  = imgLeft.src;
+    const rightSrc = imgRight.src;
     imgLeft.src  = rightSrc;
     imgRight.src = leftSrc;
-    nameLeft.textContent  = rightName;
-    nameRight.textContent = leftName;
-    nameLeft.className  = rightClass;
-    nameRight.className = leftClass;
     resetImagePan();
-  });
-
-  btnCenter.addEventListener('click', resetImagePan);
-  btnReset.addEventListener('click', () => {
-    resetImageZoom();
-    showZoomBadge();
   });
 
   // ── Zoom (scroll wheel) ────────────────────────────────────────────────
