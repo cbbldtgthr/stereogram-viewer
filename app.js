@@ -34,7 +34,6 @@
   const crossRight = document.getElementById('cross-right');
 
   const filePair   = document.getElementById('file-pair');
-  const pairHint   = document.getElementById('pair-hint');
 
   const ctrlSize   = document.getElementById('ctrl-size');
   const valSize    = document.getElementById('val-size');
@@ -45,6 +44,7 @@
 
   const btnSwap   = document.getElementById('btn-swap');
   const btnFit    = document.getElementById('btn-fit');
+  const btnSave   = document.getElementById('btn-save');
   const selectExample    = document.getElementById('select-example');
   const sidebar          = document.getElementById('sidebar');
   const btnSidebarToggle = document.getElementById('sidebar-toggle');
@@ -78,6 +78,17 @@
       : null;
     if (lh && rh) return Math.max(lh, rh);
     return lh || rh || Math.round(imgWidth * 0.75);
+  }
+
+  function frameHeightForBaseWidth(W) {
+    const lh = imgLeft.naturalWidth
+      ? Math.round((W / imgLeft.naturalWidth) * imgLeft.naturalHeight)
+      : null;
+    const rh = imgRight.naturalWidth
+      ? Math.round((W / imgRight.naturalWidth) * imgRight.naturalHeight)
+      : null;
+    if (lh && rh) return Math.max(lh, rh);
+    return lh || rh || Math.round(W * 0.75);
   }
 
   // Visible frame width after cropping
@@ -220,12 +231,9 @@
   filePair.addEventListener('change', () => {
     const files = Array.from(filePair.files).sort((a, b) => a.name.localeCompare(b.name));
     if (files.length < 2) {
-      pairHint.textContent = 'pick 2 · use Files app on Android';
-      pairHint.style.color = 'var(--accent)';
-      setTimeout(() => { pairHint.style.color = ''; }, 2500);
+      alert('Choose two images.');
       return;
     }
-    pairHint.style.color = '';
     loadFileObj(files[0], imgLeft,  'left');
     loadFileObj(files[1], imgRight, 'right');
   });
@@ -300,6 +308,78 @@
     imgRight.src = leftSrc;
     resetImagePan();
   });
+
+  /** Export draw: same framing as on-screen but at base layout width W (dh matches aspect). */
+  function drawExportedFrameAt(ctx, imgEl, frameX, frameY, fw, fh, W, ox, panX, panY, scale) {
+    const dh = (W / imgEl.naturalWidth) * imgEl.naturalHeight;
+    ctx.save();
+    ctx.translate(frameX, frameY);
+    ctx.beginPath();
+    ctx.rect(0, 0, fw, fh);
+    ctx.clip();
+    ctx.translate(panX + ox, panY);
+    ctx.scale(scale, scale);
+    ctx.drawImage(imgEl, 0, 0, W, dh);
+    ctx.restore();
+  }
+
+  async function exportStereoPng() {
+    if (!imgLeft.naturalWidth || !imgRight.naturalWidth) {
+      alert('Load a pair of images first.');
+      return;
+    }
+    if (!imgWidth) {
+      alert('Nothing to export yet.');
+      return;
+    }
+    try {
+      await Promise.all([
+        imgLeft.decode?.() ?? Promise.resolve(),
+        imgRight.decode?.() ?? Promise.resolve(),
+      ]);
+    } catch (_) { /* decode optional */ }
+
+    // Full "fit" width (100% Size): slider does not change export resolution.
+    const Wp = Math.round(maxFitWidth());
+    const ratio = Wp / imgWidth;
+    const fwP = Math.round(Wp * cropPct / 100);
+    const fhP = frameHeightForBaseWidth(Wp);
+    const oxP = (fwP - Wp) / 2;
+    const gapP = Math.round(gap * ratio);
+    // Pan & frame size scale by ratio; zoom is unchanged (same fraction of layout width visible).
+    const scaleP = imgScale;
+    const ltxP = ltx * ratio;
+    const ltyP = lty * ratio;
+    const rtxP = rtx * ratio;
+    const rtyP = rty * ratio;
+
+    const outW = Math.round(2 * fwP + gapP);
+    const outH = fhP;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = Math.max(1, Math.round(outW * dpr));
+    canvas.height = Math.max(1, Math.round(outH * dpr));
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = '#0f0f11';
+    ctx.fillRect(0, 0, outW, outH);
+
+    drawExportedFrameAt(ctx, imgLeft, 0, 0, fwP, fhP, Wp, oxP, ltxP, ltyP, scaleP);
+    drawExportedFrameAt(ctx, imgRight, fwP + gapP, 0, fwP, fhP, Wp, oxP, rtxP, rtyP, scaleP);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stereogram-${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }
+
+  btnSave.addEventListener('click', () => { exportStereoPng(); });
 
   // ── Zoom (scroll wheel) ────────────────────────────────────────────────
   viewer.addEventListener('wheel', (e) => {

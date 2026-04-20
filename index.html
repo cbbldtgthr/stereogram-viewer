@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1a1a1a" />
-  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=11" />
   <!-- Umami: ERR_BLOCKED_BY_CLIENT in DevTools is ad blockers / privacy tools blocking the tracker -->
   <script defer src="https://umami.cloete.link/script.js" data-website-id="22cc2504-e600-4863-a48e-a114857abe0d"></script>
 </head>
@@ -32,10 +32,16 @@
             Choose pair
             <input type="file" id="file-pair" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple />
           </label>
-          <span class="ctrl-label" id="pair-hint">pick 2 · use Files app on Android</span>
         </div>
         <button class="btn" id="btn-swap">⇄ Swap</button>
         <button class="btn" id="btn-fit">Fit</button>
+        <button class="btn btn-with-icon" id="btn-save" type="button">
+          <svg class="btn-icon" width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 1a.5.5 0 0 1 .5.5v6.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 8.293V1.5A.5.5 0 0 1 8 1z"/>
+            <path d="M.5 10.5A.5.5 0 0 1 1 10h3.5a.5.5 0 0 1 0 1H1a.5.5 0 0 1-.5-.5zm4.5 0a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
+          </svg>
+          Export
+        </button>
       </div>
 
       <div class="sidebar-sep"></div>
@@ -145,7 +151,7 @@
   </button>
 
 </div>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=20"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js');

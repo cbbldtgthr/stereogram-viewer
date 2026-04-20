@@ -145,10 +145,6 @@ html, body {
 }
 .file-btn:hover { border-color: var(--accent); background: #2a2a32; }
 
-#pair-hint {
-  transition: color .3s;
-}
-
 .file-btn-pair {
   background: var(--accent-dim);
   border-color: var(--accent);
@@ -251,6 +247,16 @@ select option { background: var(--surface2); }
   text-align: left;
 }
 .btn:hover { border-color: var(--accent); background: #2a2a32; }
+
+.btn-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-with-icon .btn-icon {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
 
 /* Instructions at bottom of sidebar */
 #instructions {
