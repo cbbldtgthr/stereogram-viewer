@@ -14,6 +14,13 @@
 *.swo
 *~
 
+# Node / Wrangler (Cloudflare Pages CLI)
+node_modules/
+.wrangler/
+
 # Logs
 *.log
 npm-debug.log*
+
+
+deploy.md

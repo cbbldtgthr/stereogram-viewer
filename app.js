@@ -44,7 +44,8 @@
 
   const btnSwap   = document.getElementById('btn-swap');
   const btnFit    = document.getElementById('btn-fit');
-  const btnSave   = document.getElementById('btn-save');
+  const btnSave       = document.getElementById('btn-save');
+  const btnUpdateApp  = document.getElementById('btn-update-app');
   const selectExample    = document.getElementById('select-example');
   const sidebar          = document.getElementById('sidebar');
   const btnSidebarToggle = document.getElementById('sidebar-toggle');
@@ -598,6 +599,28 @@
     clampPan();
     applyImageTransforms();
   });
+
+  /** Drop SW + Cache Storage, then reload (reliable fresh fetch for cache-first PWA). */
+  async function reloadAppFromNetwork() {
+    if (btnUpdateApp.disabled) return;
+    btnUpdateApp.disabled = true;
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch (_) {
+      btnUpdateApp.disabled = false;
+      return;
+    }
+    window.location.reload();
+  }
+
+  btnUpdateApp.addEventListener('click', () => { reloadAppFromNetwork(); });
 
   // ── Sidebar toggle ─────────────────────────────────────────────────────
   btnSidebarToggle.addEventListener('click', () => {

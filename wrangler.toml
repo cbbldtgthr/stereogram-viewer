@@ -1,0 +1,8 @@
+# Cloudflare Pages — https://developers.cloudflare.com/pages/how-to/wrangler-configuration/
+# CLI: npx wrangler pages deploy .
+# Git: set Framework preset to None, leave Build command empty, Build output directory to /
+
+name = "stereogram-viewer"
+compatibility_date = "2024-11-01"
+
+pages_build_output_dir = "."

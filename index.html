@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1a1a1a" />
-  <link rel="stylesheet" href="style.css?v=11" />
+  <link rel="stylesheet" href="style.css?v=12" />
   <!-- Umami: ERR_BLOCKED_BY_CLIENT in DevTools is ad blockers / privacy tools blocking the tracker -->
   <script defer src="https://umami.cloete.link/script.js" data-website-id="22cc2504-e600-4863-a48e-a114857abe0d"></script>
 </head>
@@ -89,6 +89,15 @@
       <!-- spacer pushes instructions to bottom -->
       <div style="flex:1"></div>
 
+      <div class="sidebar-section">
+        <button class="btn btn-with-icon" type="button" id="btn-update-app" title="Unregister offline cache and reload from the server" aria-label="Get latest version from server">
+          <svg class="btn-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8 7.99-3.58 7.99-8h-2c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+          </svg>
+          Get latest
+        </button>
+      </div>
+
       <div id="instructions">
         <div class="instr"><span class="key">scroll</span> zoom</div>
         <div class="instr"><span class="key">drag</span> pan</div>
@@ -151,7 +160,7 @@
   </button>
 
 </div>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js');

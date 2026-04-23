@@ -1,0 +1,10 @@
+{
+  "name": "stereogram-viewer",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler pages deploy ."
+  },
+  "devDependencies": {
+    "wrangler": "^4.17.0"
+  }
+}
