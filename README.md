@@ -5,6 +5,10 @@ Use it at [stereo.cbbldtgthr.dev](https://stereo.cbbldtgthr.dev/)
 
 A small static web app for **parallel (defocus) free-viewing** of a stereo pair: two photos side by side, one for each eye. Pick left and right images (or use bundled examples), then relax your eyes so each image goes to the correct eye.
 
+## Install for offline use
+
+The hosted app is a **Progressive Web App**. Open [stereo.cbbldtgthr.dev](https://stereo.cbbldtgthr.dev/) once while online so the service worker can cache the shell and bundled examples. Then use your browser’s **Install** (desktop) or **Add to Home Screen** (mobile) option—often in the address bar menu or share sheet. After that you can launch it with no network; your own photos still need to be chosen from the device when offline.
+
 ## What makes it different
 
 Scroll-wheel zoom does **not** resize the whole page. Each eye’s image lives in its own clipped frame; zoom and pan stay **locked together** so the same point in the scene stays aligned in both frames. That avoids the usual problem where browser zoom or a single “fit width” control throws off spacing for free-viewing. Many stereo tools resize the pair as one unit or only offer a coarse size control—here, zoom is interactive and centered under the cursor (or the frame center from the keyboard).

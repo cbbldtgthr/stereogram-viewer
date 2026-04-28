@@ -7,6 +7,8 @@
   let imgWidth = 0;
   let gap      = 4;
   let cropPct  = 100;
+  /** Fraction of frame height: shifts the right image down (positive) relative to the left. */
+  let yRelStereo = 0;
 
   let imgScale = 1;
   let ltx = 0, lty = 0;
@@ -41,6 +43,8 @@
   const valGap     = document.getElementById('val-gap');
   const ctrlCrop   = document.getElementById('ctrl-crop');
   const valCrop    = document.getElementById('val-crop');
+  const ctrlYRel   = document.getElementById('ctrl-yrel');
+  const valYRel    = document.getElementById('val-yrel');
 
   const btnSwap   = document.getElementById('btn-swap');
   const btnFit    = document.getElementById('btn-fit');
@@ -52,6 +56,7 @@
 
   ctrlSize.value = sizePct;
   valSize.textContent = sizePct + '%';
+  valYRel.textContent = formatYRel(yRelStereo);
 
   // ── Helpers ────────────────────────────────────────────────────────────
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -96,6 +101,17 @@
   function visibleWidth() { return Math.round(imgWidth * cropPct / 100); }
   // X offset to centre the full image inside the cropped frame
   function cropOffsetX()  { return (visibleWidth() - imgWidth) / 2; }
+
+  /** Vertical shift of the right eye image vs left, in pixels (see yRelStereo). */
+  function stereoYShiftPx() {
+    return yRelStereo * frameHeight();
+  }
+
+  function formatYRel(v) {
+    const s = v.toFixed(3);
+    if (v > 0) return '+' + s;
+    return s;
+  }
 
   /** Unscaled pixel height of each image at current imgWidth */
   function leftImageHeight() {
@@ -164,8 +180,9 @@
   // ── Transforms ─────────────────────────────────────────────────────────
   function applyImageTransforms() {
     const ox = cropOffsetX();
+    const sy = stereoYShiftPx();
     imgLeft.style.transform  = `translate(${ltx + ox}px, ${lty}px) scale(${imgScale})`;
-    imgRight.style.transform = `translate(${rtx + ox}px, ${rty}px) scale(${imgScale})`;
+    imgRight.style.transform = `translate(${rtx + ox}px, ${lty + sy}px) scale(${imgScale})`;
   }
 
   function applyRowTransform() {
@@ -292,6 +309,12 @@
     applyImageTransforms();
   });
 
+  ctrlYRel.addEventListener('input', () => {
+    yRelStereo = +ctrlYRel.value;
+    valYRel.textContent = formatYRel(yRelStereo);
+    applyImageTransforms();
+  });
+
   btnFit.addEventListener('click', () => {
     sizePct = 100;
     ctrlSize.value = 100;
@@ -352,7 +375,8 @@
     const ltxP = ltx * ratio;
     const ltyP = lty * ratio;
     const rtxP = rtx * ratio;
-    const rtyP = rty * ratio;
+    const stereoYExport = yRelStereo * fhP;
+    const rtyP = ltyP + stereoYExport;
 
     const outW = Math.round(2 * fwP + gapP);
     const outH = fhP;
