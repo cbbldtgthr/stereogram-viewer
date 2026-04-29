@@ -1,6 +1,8 @@
 # Stereogram Viewer
 ![Demo](demo.gif)
 
+[![Explanation]](https://www.youtube.com/watch?v=Yd1yWBF3wrc)
+
 Use it at [stereo.cbbldtgthr.dev](https://stereo.cbbldtgthr.dev/)
 
 A small static web app for **parallel (defocus) free-viewing** of a stereo pair: two photos side by side, one for each eye. Pick left and right images (or use bundled examples), then relax your eyes so each image goes to the correct eye.
