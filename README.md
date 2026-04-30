@@ -1,7 +1,7 @@
 # Stereogram Viewer
 ![Demo](demo.gif)
 
-[![Explanation]](https://www.youtube.com/watch?v=Yd1yWBF3wrc)
+[Youtube video here](https://www.youtube.com/watch?v=Yd1yWBF3wrc)
 
 Use it at [stereo.cbbldtgthr.dev](https://stereo.cbbldtgthr.dev/)
 
