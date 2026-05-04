@@ -7,9 +7,9 @@
   let imgWidth = 0;
   let gap      = 4;
   let cropPct  = 100;
-  /** Fraction of frame height: shifts the right image down (positive) relative to the left. */
+  /** Fraction of frame height: shifts the left image down (positive). */
   let yRelStereo = 0;
-  /** Fraction of visible frame width: shifts the right image right (positive) relative to the left. */
+  /** Fraction of visible frame width: shifts the left image right (positive). */
   let xRelStereo = 0;
 
   let imgScale = 1;
@@ -107,12 +107,12 @@
   // X offset to centre the full image inside the cropped frame
   function cropOffsetX()  { return (visibleWidth() - imgWidth) / 2; }
 
-  /** Vertical shift of the right eye image vs left, in pixels (see yRelStereo). */
+  /** Extra vertical pan applied to the left eye only, in pixels (see yRelStereo). */
   function stereoYShiftPx() {
     return yRelStereo * frameHeight();
   }
 
-  /** Horizontal shift of the right eye image vs left, in pixels (see xRelStereo). */
+  /** Extra horizontal pan applied to the left eye only, in pixels (see xRelStereo). */
   function stereoXShiftPx() {
     return xRelStereo * visibleWidth();
   }
@@ -192,8 +192,8 @@
     const ox = cropOffsetX();
     const sx = stereoXShiftPx();
     const sy = stereoYShiftPx();
-    imgLeft.style.transform  = `translate(${ltx + ox}px, ${lty}px) scale(${imgScale})`;
-    imgRight.style.transform = `translate(${rtx + ox + sx}px, ${lty + sy}px) scale(${imgScale})`;
+    imgLeft.style.transform  = `translate(${ltx + ox + sx}px, ${lty + sy}px) scale(${imgScale})`;
+    imgRight.style.transform = `translate(${rtx + ox}px, ${lty}px) scale(${imgScale})`;
   }
 
   function applyRowTransform() {
@@ -393,8 +393,8 @@
     const ltyP = lty * ratio;
     const stereoXExport = xRelStereo * fwP;
     const stereoYExport = yRelStereo * fhP;
-    const rtxP = ltxP + stereoXExport;
-    const rtyP = ltyP + stereoYExport;
+    const ltxPLeft = ltxP + stereoXExport;
+    const ltyPLeft = ltyP + stereoYExport;
 
     const outW = Math.round(2 * fwP + gapP);
     const outH = fhP;
@@ -408,8 +408,8 @@
     ctx.fillStyle = '#0f0f11';
     ctx.fillRect(0, 0, outW, outH);
 
-    drawExportedFrameAt(ctx, imgLeft, 0, 0, fwP, fhP, Wp, oxP, ltxP, ltyP, scaleP);
-    drawExportedFrameAt(ctx, imgRight, fwP + gapP, 0, fwP, fhP, Wp, oxP, rtxP, rtyP, scaleP);
+    drawExportedFrameAt(ctx, imgLeft, 0, 0, fwP, fhP, Wp, oxP, ltxPLeft, ltyPLeft, scaleP);
+    drawExportedFrameAt(ctx, imgRight, fwP + gapP, 0, fwP, fhP, Wp, oxP, ltxP, ltyP, scaleP);
 
     canvas.toBlob((blob) => {
       if (!blob) return;
