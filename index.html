@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1a1a1a" />
-  <link rel="stylesheet" href="style.css?v=13" />
+  <link rel="stylesheet" href="style.css?v=14" />
   <!-- Umami: ERR_BLOCKED_BY_CLIENT in DevTools is ad blockers / privacy tools blocking the tracker -->
   <script defer src="https://umami.cloete.link/script.js" data-website-id="22cc2504-e600-4863-a48e-a114857abe0d"></script>
 </head>
@@ -109,6 +109,12 @@
       <div style="flex:1"></div>
 
       <div class="sidebar-section">
+        <button class="btn btn-with-icon" id="btn-embed" type="button">
+          <svg class="btn-icon" width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M4.854 4.146a.5.5 0 0 1 0 .708L2.707 7l2.147 2.146a.5.5 0 1 1-.708.708l-2.5-2.5a.5.5 0 0 1 0-.708l2.5-2.5a.5.5 0 0 1 .708 0zm6.292 0a.5.5 0 0 0 0 .708L13.293 7l-2.147 2.146a.5.5 0 0 0 .708.708l2.5-2.5a.5.5 0 0 0 0-.708l-2.5-2.5a.5.5 0 0 0-.708 0zM8.5 3.5a.5.5 0 0 0-1 0v9a.5.5 0 0 0 1 0v-9z"/>
+          </svg>
+          Embed
+        </button>
         <button class="btn btn-with-icon" type="button" id="btn-update-app" title="Unregister offline cache and reload from the server" aria-label="Get latest version from server">
           <svg class="btn-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8 7.99-3.58 7.99-8h-2c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
@@ -178,8 +184,26 @@
     </svg>
   </button>
 
+  <div id="embed-modal" class="embed-modal" role="dialog" aria-modal="true" aria-labelledby="embed-modal-title" hidden>
+    <div class="embed-modal-backdrop" id="embed-modal-backdrop" aria-hidden="true"></div>
+    <div class="embed-modal-panel">
+      <h2 id="embed-modal-title" class="embed-modal-title">Embed viewer</h2>
+      <p class="embed-modal-hint">Paste public <strong>http(s)</strong> URLs for both images (embeds only work in an iframe). Images need <strong>CORS</strong> headers if viewers use Export.</p>
+      <label class="embed-modal-label" for="embed-url-left">Left image URL</label>
+      <input type="url" class="embed-modal-input" id="embed-url-left" placeholder="https://…" autocomplete="off" spellcheck="false" />
+      <label class="embed-modal-label" for="embed-url-right">Right image URL</label>
+      <input type="url" class="embed-modal-input" id="embed-url-right" placeholder="https://…" autocomplete="off" spellcheck="false" />
+      <label class="embed-modal-label" for="embed-code">HTML to paste</label>
+      <textarea class="embed-modal-textarea" id="embed-code" readonly rows="8" spellcheck="false"></textarea>
+      <div class="embed-modal-actions">
+        <button type="button" class="btn embed-modal-btn" id="embed-copy">Copy code</button>
+        <button type="button" class="btn embed-modal-btn embed-modal-btn-secondary" id="embed-close">Close</button>
+      </div>
+    </div>
+  </div>
+
 </div>
-<script src="app.js?v=26"></script>
+<script src="app.js?v=27"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js');

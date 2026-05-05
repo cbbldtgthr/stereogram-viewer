@@ -59,6 +59,15 @@
   const sidebar          = document.getElementById('sidebar');
   const btnSidebarToggle = document.getElementById('sidebar-toggle');
 
+  const btnEmbed           = document.getElementById('btn-embed');
+  const embedModal         = document.getElementById('embed-modal');
+  const embedModalBackdrop = document.getElementById('embed-modal-backdrop');
+  const embedUrlLeft       = document.getElementById('embed-url-left');
+  const embedUrlRight      = document.getElementById('embed-url-right');
+  const embedCode          = document.getElementById('embed-code');
+  const embedCopy          = document.getElementById('embed-copy');
+  const embedClose         = document.getElementById('embed-close');
+
   ctrlSize.value = sizePct;
   valSize.textContent = sizePct + '%';
   valXRel.textContent = formatRelOffset(xRelStereo);
@@ -95,6 +104,59 @@
     const sm = hint.querySelector('small');
     if (p) p.textContent = `Could not load the ${side} image. Check the URL and CORS.`;
     if (sm) sm.textContent = '';
+  }
+
+  function isHttpPublicImageUrl(src) {
+    return typeof src === 'string' && /^https?:\/\//i.test(src);
+  }
+
+  /** Build iframe HTML for embedding this app with left/right image query params. */
+  function buildEmbedIframeHtml(leftRaw, rightRaw) {
+    const lt = (leftRaw || '').trim();
+    const rt = (rightRaw || '').trim();
+    if (!lt || !rt) {
+      return { ok: false, message: 'Enter both image URLs above to generate the iframe code.' };
+    }
+    let leftHref;
+    let rightHref;
+    try {
+      const l = new URL(lt, location.href);
+      const r = new URL(rt, location.href);
+      const okProto = (u) => u.protocol === 'http:' || u.protocol === 'https:';
+      if (!okProto(l) || !okProto(r)) {
+        return { ok: false, message: 'Both URLs must use http:// or https://.' };
+      }
+      leftHref = l.href;
+      rightHref = r.href;
+    } catch (_) {
+      return { ok: false, message: 'Invalid URL. Check both fields.' };
+    }
+    const u = new URL(location.href);
+    u.hash = '';
+    u.search = '';
+    u.searchParams.set('left', leftHref);
+    u.searchParams.set('right', rightHref);
+    const srcAttr = u.href.replace(/"/g, '&quot;');
+    const html = `<iframe\n  src="${srcAttr}"\n  title="Stereogram Viewer"\n  width="100%"\n  height="720"\n  style="border:0;"\n  loading="lazy"\n></iframe>`;
+    return { ok: true, html };
+  }
+
+  function refreshEmbedCodeOutput() {
+    const result = buildEmbedIframeHtml(embedUrlLeft.value, embedUrlRight.value);
+    embedCode.value = result.ok ? result.html : result.message;
+  }
+
+  function openEmbedModal() {
+    if (isEmbedded) return;
+    embedUrlLeft.value  = isHttpPublicImageUrl(imgLeft.src) ? imgLeft.src : '';
+    embedUrlRight.value = isHttpPublicImageUrl(imgRight.src) ? imgRight.src : '';
+    refreshEmbedCodeOutput();
+    embedModal.removeAttribute('hidden');
+    (embedUrlLeft.value.trim() ? embedUrlRight : embedUrlLeft).focus();
+  }
+
+  function closeEmbedModal() {
+    embedModal.setAttribute('hidden', '');
   }
 
   function maxFitWidth() {
@@ -459,6 +521,29 @@
 
   btnSave.addEventListener('click', () => { exportStereoPng(); });
 
+  if (!isEmbedded) {
+    btnEmbed.addEventListener('click', openEmbedModal);
+    embedClose.addEventListener('click', closeEmbedModal);
+    embedModalBackdrop.addEventListener('click', closeEmbedModal);
+    embedUrlLeft.addEventListener('input', refreshEmbedCodeOutput);
+    embedUrlRight.addEventListener('input', refreshEmbedCodeOutput);
+    embedCopy.addEventListener('click', () => {
+      const v = embedCode.value;
+      if (!v.includes('<iframe')) return;
+      navigator.clipboard.writeText(v).then(() => {
+        const prev = embedCopy.textContent;
+        embedCopy.textContent = 'Copied!';
+        setTimeout(() => { embedCopy.textContent = prev; }, 1800);
+      }).catch(() => {
+        embedCode.focus();
+        embedCode.select();
+        try {
+          document.execCommand('copy');
+        } catch (_) { /* ignore */ }
+      });
+    });
+  }
+
   // ── Zoom (scroll wheel) ────────────────────────────────────────────────
   viewer.addEventListener('wheel', (e) => {
     e.preventDefault();
@@ -630,7 +715,12 @@
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────
   window.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
+    if (!embedModal.hasAttribute('hidden') && e.key === 'Escape') {
+      e.preventDefault();
+      closeEmbedModal();
+      return;
+    }
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
