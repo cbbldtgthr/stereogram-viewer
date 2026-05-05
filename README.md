@@ -23,6 +23,33 @@ Scroll-wheel zoom does **not** resize the whole page. Each eye’s image lives i
 - **Up / down arrows** — zoom toward the center.
 - **Gap, crop** — spacing between frames and horizontal crop (percentage), still side by side.
 
+## Embed in an iframe
+
+You can embed the hosted viewer on another site. When it runs **inside an iframe** (`window.self !== window.top`), the **Choose pair** control and **Examples** dropdown are hidden so it acts as a fixed viewer.
+
+**Image URLs** come from query parameters (both required):
+
+- `left` — URL of the left-eye image  
+- `right` — URL of the right-eye image  
+
+Only `http:` and `https:` URLs are accepted. Resolve paths the usual way: absolute URLs, or paths relative to the viewer’s origin (e.g. under the same host as the app).
+
+Encode the values when you build the iframe `src`, e.g. with `encodeURIComponent(url)`.
+
+```html
+<iframe
+  src="https://stereo.cbbldtgthr.dev/?left=ENCODED_LEFT_URL&right=ENCODED_RIGHT_URL"
+  title="Stereogram Viewer"
+  width="100%"
+  height="720"
+  style="border:0;"
+></iframe>
+```
+
+Images are requested with **`crossOrigin="anonymous"`**. For **Export** (and a clean canvas), the image hosts should send appropriate **CORS** headers; otherwise loading or export may fail for cross-origin files.
+
+If the iframe URL has no `left`/`right` parameters, the viewer shows a short message explaining that the embed needs them.
+
 ## Run locally
 
 Open `index.html` in a browser, or serve the folder with any static file server (paths are relative).

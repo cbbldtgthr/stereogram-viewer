@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script>
+    if (window.self !== window.top) document.documentElement.classList.add('embedded');
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stereogram Viewer</title>
   <link rel="icon" href="favicon.ico" sizes="32x32" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1a1a1a" />
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
   <!-- Umami: ERR_BLOCKED_BY_CLIENT in DevTools is ad blockers / privacy tools blocking the tracker -->
   <script defer src="https://umami.cloete.link/script.js" data-website-id="22cc2504-e600-4863-a48e-a114857abe0d"></script>
 </head>
@@ -88,9 +91,9 @@
         </div>
       </div>
 
-      <div class="sidebar-sep"></div>
+      <div class="sidebar-sep" id="sidebar-sep-examples"></div>
 
-      <div class="sidebar-section">
+      <div class="sidebar-section" id="sidebar-examples">
         <div class="ctrl-group">
           <span class="ctrl-label">Examples</span>
         </div>
@@ -176,7 +179,7 @@
   </button>
 
 </div>
-<script src="app.js?v=25"></script>
+<script src="app.js?v=26"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js');

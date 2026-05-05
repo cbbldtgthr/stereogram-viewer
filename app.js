@@ -1,6 +1,7 @@
 (() => {
   // ── Constants ──────────────────────────────────────────────────────────
   const MAX_SCALE = 20;
+  const isEmbedded = window.self !== window.top;
 
   // ── State ──────────────────────────────────────────────────────────────
   let sizePct = 100;
@@ -65,6 +66,36 @@
 
   // ── Helpers ────────────────────────────────────────────────────────────
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  /**
+   * When iframed: read left/right image URLs from query (?left=&right=), http(s) only.
+   */
+  function parseQueryStereoPair() {
+    if (!isEmbedded) return null;
+    const params = new URLSearchParams(window.location.search);
+    const rawL = params.get('left');
+    const rawR = params.get('right');
+    if (!rawL || !rawR) return null;
+    let leftU;
+    let rightU;
+    try {
+      leftU = new URL(rawL, window.location.href);
+      rightU = new URL(rawR, window.location.href);
+    } catch (_) {
+      return null;
+    }
+    const ok = (u) => u.protocol === 'http:' || u.protocol === 'https:';
+    if (!ok(leftU) || !ok(rightU)) return null;
+    return { left: leftU.href, right: rightU.href };
+  }
+
+  function onEmbedImageLoadError(side) {
+    hint.classList.remove('hidden');
+    const p = hint.querySelector('p');
+    const sm = hint.querySelector('small');
+    if (p) p.textContent = `Could not load the ${side} image. Check the URL and CORS.`;
+    if (sm) sm.textContent = '';
+  }
 
   function maxFitWidth() {
     const vw = viewer.clientWidth;
@@ -268,7 +299,8 @@
   });
 
   // ── Example loader ─────────────────────────────────────────────────────
-  function loadFromUrl(url, imgEl, side) {
+  function loadFromUrl(url, imgEl, side, options = {}) {
+    const { crossOrigin: cors, onError } = options;
     imgEl.onload = () => {
       if (side === 'left')  leftLoaded  = true;
       if (side === 'right') rightLoaded = true;
@@ -278,6 +310,9 @@
       centerRow();
       resetImageZoom();
     };
+    imgEl.onerror = onError || null;
+    if (cors) imgEl.crossOrigin = cors;
+    else imgEl.removeAttribute('crossOrigin');
     imgEl.src = url;
   }
 
@@ -628,6 +663,27 @@
   });
 
   // ── Init ───────────────────────────────────────────────────────────────
+  if (isEmbedded) {
+    const pair = parseQueryStereoPair();
+    if (pair) {
+      leftLoaded  = false;
+      rightLoaded = false;
+      loadFromUrl(pair.left, imgLeft, 'left', {
+        crossOrigin: 'anonymous',
+        onError: () => { onEmbedImageLoadError('left'); },
+      });
+      loadFromUrl(pair.right, imgRight, 'right', {
+        crossOrigin: 'anonymous',
+        onError: () => { onEmbedImageLoadError('right'); },
+      });
+    } else {
+      const p = hint.querySelector('p');
+      const sm = hint.querySelector('small');
+      if (p) p.textContent = 'This embed needs image URLs in the iframe address.';
+      if (sm) sm.textContent = 'Use ?left=https://…&right=https://… (encode with encodeURIComponent).';
+    }
+  }
+
   updateImgWidth();
   applyLayout();
   centerRow();

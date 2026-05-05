@@ -21,6 +21,13 @@ html, body {
   overflow: hidden;
 }
 
+/* Embedded in an iframe: static viewer (URLs via query string); hide local sources */
+html.embedded .file-group,
+html.embedded #sidebar-sep-examples,
+html.embedded #sidebar-examples {
+  display: none !important;
+}
+
 /* ── App shell: viewer is full-screen; sidebar floats on top ── */
 #app {
   position: relative;
