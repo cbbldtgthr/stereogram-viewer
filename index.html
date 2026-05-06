@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1a1a1a" />
-  <link rel="stylesheet" href="style.css?v=14" />
+  <link rel="stylesheet" href="style.css?v=19" />
   <!-- Umami: ERR_BLOCKED_BY_CLIENT in DevTools is ad blockers / privacy tools blocking the tracker -->
   <script defer src="https://umami.cloete.link/script.js" data-website-id="22cc2504-e600-4863-a48e-a114857abe0d"></script>
 </head>
@@ -27,14 +27,27 @@
       </div>
 
       <div class="sidebar-section">
-        <div class="file-group">
-          <label class="file-btn file-btn-pair">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 1a.75.75 0 0 1 .75.75v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5H1.75a.75.75 0 0 1 0-1.5h5.5v-5.5A.75.75 0 0 1 8 1z"/>
-            </svg>
-            Choose pair
-            <input type="file" id="file-pair" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple />
-          </label>
+        <div class="sidebar-sources" id="sidebar-sources">
+          <div class="file-group">
+            <input type="file" id="file-pair" class="hidden-file-input" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple />
+            <button type="button" class="file-btn file-btn-pair" id="btn-choose-pair">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 1a.75.75 0 0 1 .75.75v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5H1.75a.75.75 0 0 1 0-1.5h5.5v-5.5A.75.75 0 0 1 8 1z"/>
+              </svg>
+              Choose pair
+            </button>
+            <input type="file" id="file-stitched" class="hidden-file-input" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif" />
+            <button type="button" class="file-btn file-btn-stitched" id="btn-choose-stitched">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M1 2h6v12H1V2zm8 0h6v12H9V2z"/>
+              </svg>
+              Choose stitched
+            </button>
+          </div>
+          <div class="source-mode-toggle" role="group" aria-label="Image source">
+            <button type="button" class="source-mode-btn active" id="btn-source-upload" aria-pressed="true">Upload</button>
+            <button type="button" class="source-mode-btn" id="btn-source-link" aria-pressed="false">Link</button>
+          </div>
         </div>
         <button class="btn" id="btn-swap">⇄ Swap</button>
         <button class="btn" id="btn-fit">Fit</button>
@@ -158,7 +171,7 @@
         <circle cx="48" cy="36" r="7"/>
         <line x1="53" y1="41" x2="58" y2="46"/>
       </svg>
-      <p>Choose left and right images to begin</p>
+      <p>Choose two photos or one stitched image to begin</p>
       <small>Scroll to zoom · Drag to pan</small>
     </div>
 
@@ -188,11 +201,22 @@
     <div class="embed-modal-backdrop" id="embed-modal-backdrop" aria-hidden="true"></div>
     <div class="embed-modal-panel">
       <h2 id="embed-modal-title" class="embed-modal-title">Embed viewer</h2>
-      <p class="embed-modal-hint">Paste public <strong>http(s)</strong> URLs for both images (embeds only work in an iframe). Images need <strong>CORS</strong> headers if viewers use Export.</p>
-      <label class="embed-modal-label" for="embed-url-left">Left image URL</label>
-      <input type="url" class="embed-modal-input" id="embed-url-left" placeholder="https://…" autocomplete="off" spellcheck="false" />
-      <label class="embed-modal-label" for="embed-url-right">Right image URL</label>
-      <input type="url" class="embed-modal-input" id="embed-url-right" placeholder="https://…" autocomplete="off" spellcheck="false" />
+      <p class="embed-modal-hint">Paste public <strong>http(s)</strong> URLs (embeds only work in an iframe). Images need <strong>CORS</strong> headers if viewers use Export or a stitched image.</p>
+      <label class="embed-modal-label" for="embed-mode">Embed mode</label>
+      <select id="embed-mode" class="embed-modal-input embed-modal-select">
+        <option value="pair">Two image URLs</option>
+        <option value="stitched">One stitched image</option>
+      </select>
+      <div id="embed-fields-pair">
+        <label class="embed-modal-label" for="embed-url-left">Left image URL</label>
+        <input type="url" class="embed-modal-input" id="embed-url-left" placeholder="https://…" autocomplete="off" spellcheck="false" />
+        <label class="embed-modal-label" for="embed-url-right">Right image URL</label>
+        <input type="url" class="embed-modal-input" id="embed-url-right" placeholder="https://…" autocomplete="off" spellcheck="false" />
+      </div>
+      <div id="embed-fields-stitched" hidden>
+        <label class="embed-modal-label" for="embed-url-stitched">Stitched image URL</label>
+        <input type="url" class="embed-modal-input" id="embed-url-stitched" placeholder="https://…" autocomplete="off" spellcheck="false" />
+      </div>
       <label class="embed-modal-label" for="embed-code">HTML to paste</label>
       <textarea class="embed-modal-textarea" id="embed-code" readonly rows="8" spellcheck="false"></textarea>
       <div class="embed-modal-actions">
@@ -202,8 +226,35 @@
     </div>
   </div>
 
+  <div id="link-modal" class="embed-modal" role="dialog" aria-modal="true" aria-labelledby="link-modal-title" hidden>
+    <div class="embed-modal-backdrop" id="link-modal-backdrop" aria-hidden="true"></div>
+    <div class="embed-modal-panel">
+      <h2 id="link-modal-title" class="embed-modal-title">Load from URLs</h2>
+      <p class="embed-modal-hint">Public <strong>http(s)</strong> image URLs only. Cross-origin images need <strong>CORS</strong> headers if you use Export.</p>
+      <label class="embed-modal-label" for="link-modal-mode">Source type</label>
+      <select id="link-modal-mode" class="embed-modal-input embed-modal-select">
+        <option value="pair">Two images</option>
+        <option value="stitched">One stitched image</option>
+      </select>
+      <div id="link-modal-fields-pair">
+        <label class="embed-modal-label" for="link-modal-url-left">Left image URL</label>
+        <input type="url" class="embed-modal-input" id="link-modal-url-left" placeholder="https://…" autocomplete="off" spellcheck="false" />
+        <label class="embed-modal-label" for="link-modal-url-right">Right image URL</label>
+        <input type="url" class="embed-modal-input" id="link-modal-url-right" placeholder="https://…" autocomplete="off" spellcheck="false" />
+      </div>
+      <div id="link-modal-fields-stitched" hidden>
+        <label class="embed-modal-label" for="link-modal-url-stitched">Stitched image URL</label>
+        <input type="url" class="embed-modal-input" id="link-modal-url-stitched" placeholder="https://…" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="embed-modal-actions">
+        <button type="button" class="btn embed-modal-btn" id="link-modal-load">Load</button>
+        <button type="button" class="btn embed-modal-btn embed-modal-btn-secondary" id="link-modal-close">Cancel</button>
+      </div>
+    </div>
+  </div>
+
 </div>
-<script src="app.js?v=27"></script>
+<script src="app.js?v=33"></script>
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js');

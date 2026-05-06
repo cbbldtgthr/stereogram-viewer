@@ -1,5 +1,5 @@
 // Bump this name when you ship breaking cache changes so old entries are purged on activate.
-const CACHE = 'stereogram-v1';
+const CACHE = 'stereogram-v6';
 
 const PRECACHE = [
   '/',

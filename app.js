@@ -17,6 +17,9 @@
   let ltx = 0, lty = 0;
   let rtx = 0, rty = 0;
 
+  /** Sidebar: local files vs http(s) URLs (same loader paths as iframe). */
+  let sourceMode = 'upload';
+
   let rowX = 0, rowY = 0;
 
   let dragging   = false;
@@ -24,6 +27,8 @@
   let ltxStart   = 0, ltyStart  = 0;
 
   let zoomTimer = null;
+  /** Debounces alert when pair URLs both fail (left/right fire separately). */
+  let imageLoadErrorAlertTimer = null;
 
   // ── Elements ───────────────────────────────────────────────────────────
   const viewer     = document.getElementById('viewer');
@@ -38,7 +43,13 @@
   const crossLeft  = document.getElementById('cross-left');
   const crossRight = document.getElementById('cross-right');
 
-  const filePair   = document.getElementById('file-pair');
+  const filePair      = document.getElementById('file-pair');
+  const fileStitched  = document.getElementById('file-stitched');
+
+  const btnChoosePair     = document.getElementById('btn-choose-pair');
+  const btnChooseStitched = document.getElementById('btn-choose-stitched');
+  const btnSourceUpload   = document.getElementById('btn-source-upload');
+  const btnSourceLink     = document.getElementById('btn-source-link');
 
   const ctrlSize   = document.getElementById('ctrl-size');
   const valSize    = document.getElementById('val-size');
@@ -62,94 +73,237 @@
   const btnEmbed           = document.getElementById('btn-embed');
   const embedModal         = document.getElementById('embed-modal');
   const embedModalBackdrop = document.getElementById('embed-modal-backdrop');
+  const embedMode          = document.getElementById('embed-mode');
+  const embedFieldsPair    = document.getElementById('embed-fields-pair');
+  const embedFieldsStitched = document.getElementById('embed-fields-stitched');
   const embedUrlLeft       = document.getElementById('embed-url-left');
   const embedUrlRight      = document.getElementById('embed-url-right');
+  const embedUrlStitched   = document.getElementById('embed-url-stitched');
   const embedCode          = document.getElementById('embed-code');
   const embedCopy          = document.getElementById('embed-copy');
   const embedClose         = document.getElementById('embed-close');
+
+  const linkModal             = document.getElementById('link-modal');
+  const linkModalBackdrop     = document.getElementById('link-modal-backdrop');
+  const linkModalMode         = document.getElementById('link-modal-mode');
+  const linkModalFieldsPair   = document.getElementById('link-modal-fields-pair');
+  const linkModalFieldsStitched = document.getElementById('link-modal-fields-stitched');
+  const linkModalUrlLeft      = document.getElementById('link-modal-url-left');
+  const linkModalUrlRight     = document.getElementById('link-modal-url-right');
+  const linkModalUrlStitched  = document.getElementById('link-modal-url-stitched');
+  const linkModalLoad         = document.getElementById('link-modal-load');
+  const linkModalClose        = document.getElementById('link-modal-close');
 
   ctrlSize.value = sizePct;
   valSize.textContent = sizePct + '%';
   valXRel.textContent = formatRelOffset(xRelStereo);
   valYRel.textContent = formatRelOffset(yRelStereo);
 
+  /** Resolve trimmed URL against base; require http(s). Same rules as iframe embed params. */
+  function normalizeHttpImageUrl(raw, baseHref = location.href) {
+    if (typeof raw !== 'string') return null;
+    try {
+      const u = new URL(raw.trim(), baseHref);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+      return u.href;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
   /**
-   * When iframed: read left/right image URLs from query (?left=&right=), http(s) only.
+   * When iframed: ?left=&right= (pair) or ?stitched= (single side‑by‑side image), http(s) only.
    */
-  function parseQueryStereoPair() {
+  function parseEmbedStereoParams() {
     if (!isEmbedded) return null;
     const params = new URLSearchParams(window.location.search);
+    const stitchedRaw = params.get('stitched');
+    if (stitchedRaw != null && stitchedRaw !== '') {
+      const url = normalizeHttpImageUrl(stitchedRaw);
+      if (!url) return { badEmbed: true };
+      return { mode: 'stitched', url };
+    }
     const rawL = params.get('left');
     const rawR = params.get('right');
     if (!rawL || !rawR) return null;
-    let leftU;
-    let rightU;
-    try {
-      leftU = new URL(rawL, window.location.href);
-      rightU = new URL(rawR, window.location.href);
-    } catch (_) {
-      return null;
-    }
-    const ok = (u) => u.protocol === 'http:' || u.protocol === 'https:';
-    if (!ok(leftU) || !ok(rightU)) return null;
-    return { left: leftU.href, right: rightU.href };
+    const left = normalizeHttpImageUrl(rawL);
+    const right = normalizeHttpImageUrl(rawR);
+    if (!left || !right) return { badEmbed: true };
+    return { mode: 'pair', left, right };
   }
 
-  function onEmbedImageLoadError(side) {
+  function onEmbedImageLoadError(kind) {
     hint.classList.remove('hidden');
     const p = hint.querySelector('p');
     const sm = hint.querySelector('small');
-    if (p) p.textContent = `Could not load the ${side} image. Check the URL and CORS.`;
+    if (p) {
+      p.textContent = kind === 'stitched'
+        ? 'Could not load or split the stitched image. Check the URL and CORS.'
+        : `Could not load the ${kind} image. Check the URL and CORS.`;
+    }
     if (sm) sm.textContent = '';
+
+    const popupStitched =
+      'Could not load or split that stitched image.\n\n'
+      + 'This is usually blocked by CORS: the image server must allow cross-origin access '
+      + '(for example Access-Control-Allow-Origin), because this app reads pixels to split '
+      + 'the stereo pair and for Export.\n\n'
+      + 'What you can do:\n'
+      + '• Switch to Upload mode and choose the file from your device.\n'
+      + '• Host the image behind a URL that sends proper CORS headers.';
+
+    const popupPair =
+      'Could not load those images from the URLs.\n\n'
+      + 'This is usually blocked by CORS: each server must allow cross-origin access '
+      + '(Access-Control-Allow-Origin, etc.) so the browser can load them here.\n\n'
+      + 'What you can do:\n'
+      + '• Switch to Upload mode and pick local files.\n'
+      + '• Use image URLs from hosting that enables CORS for web apps.';
+
+    clearTimeout(imageLoadErrorAlertTimer);
+    imageLoadErrorAlertTimer = setTimeout(() => {
+      imageLoadErrorAlertTimer = null;
+      alert(kind === 'stitched' ? popupStitched : popupPair);
+    }, 100);
+  }
+
+  function onStereoPairReady() {
+    hint.classList.add('hidden');
+    updateImgWidth();
+    applyLayout();
+    centerRow();
+    resetImageZoom();
+  }
+
+  function markStereoSideLoaded(side) {
+    if (side === 'left') leftLoaded = true;
+    if (side === 'right') rightLoaded = true;
+    if (leftLoaded && rightLoaded) onStereoPairReady();
+  }
+
+  /** Split one side-by-side bitmap into left | right eye halves. */
+  function splitStitchedToDataUrls(img) {
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    if (!w || !h) throw new Error('bad dimensions');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const dwLeft = Math.floor(w / 2);
+    const dwRight = w - dwLeft;
+    canvas.width = dwLeft;
+    canvas.height = h;
+    ctx.drawImage(img, 0, 0, dwLeft, h, 0, 0, dwLeft, h);
+    const leftDataUrl = canvas.toDataURL('image/png');
+    canvas.width = dwRight;
+    ctx.drawImage(img, dwLeft, 0, dwRight, h, 0, 0, dwRight, h);
+    const rightDataUrl = canvas.toDataURL('image/png');
+    return { left: leftDataUrl, right: rightDataUrl };
+  }
+
+  function assignSplitPairFromDataUrls(leftDataUrl, rightDataUrl, onImgError) {
+    leftLoaded = false;
+    rightLoaded = false;
+    imgLeft.onload = () => markStereoSideLoaded('left');
+    imgRight.onload = () => markStereoSideLoaded('right');
+    imgLeft.onerror = onImgError || null;
+    imgRight.onerror = onImgError || null;
+    imgLeft.removeAttribute('crossOrigin');
+    imgRight.removeAttribute('crossOrigin');
+    imgLeft.src = leftDataUrl;
+    imgRight.src = rightDataUrl;
+  }
+
+  function loadStitchedFromUrl(url) {
+    leftLoaded = false;
+    rightLoaded = false;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const { left, right } = splitStitchedToDataUrls(img);
+        assignSplitPairFromDataUrls(left, right, () => onEmbedImageLoadError('stitched'));
+      } catch (_) {
+        onEmbedImageLoadError('stitched');
+      }
+    };
+    img.onerror = () => onEmbedImageLoadError('stitched');
+    img.src = url;
+  }
+
+  function loadStereoPairFromHttpUrls(leftHref, rightHref) {
+    leftLoaded = false;
+    rightLoaded = false;
+    loadFromUrl(leftHref, imgLeft, 'left', {
+      crossOrigin: 'anonymous',
+      onError: () => { onEmbedImageLoadError('left'); },
+    });
+    loadFromUrl(rightHref, imgRight, 'right', {
+      crossOrigin: 'anonymous',
+      onError: () => { onEmbedImageLoadError('right'); },
+    });
   }
 
   function isHttpPublicImageUrl(src) {
     return typeof src === 'string' && /^https?:\/\//i.test(src);
   }
 
-  /** Build iframe HTML for embedding this app with left/right image query params. */
-  function buildEmbedIframeHtml(leftRaw, rightRaw) {
-    const lt = (leftRaw || '').trim();
-    const rt = (rightRaw || '').trim();
-    if (!lt || !rt) {
-      return { ok: false, message: 'Enter both image URLs above to generate the iframe code.' };
-    }
-    let leftHref;
-    let rightHref;
-    try {
-      const l = new URL(lt, location.href);
-      const r = new URL(rt, location.href);
-      const okProto = (u) => u.protocol === 'http:' || u.protocol === 'https:';
-      if (!okProto(l) || !okProto(r)) {
-        return { ok: false, message: 'Both URLs must use http:// or https://.' };
-      }
-      leftHref = l.href;
-      rightHref = r.href;
-    } catch (_) {
-      return { ok: false, message: 'Invalid URL. Check both fields.' };
-    }
+  /** Build iframe HTML: pair (?left=&right=) or stitched (?stitched=). */
+  function buildEmbedIframeHtml() {
     const u = new URL(location.href);
     u.hash = '';
     u.search = '';
-    u.searchParams.set('left', leftHref);
-    u.searchParams.set('right', rightHref);
+
+    if (embedMode.value === 'stitched') {
+      const st = (embedUrlStitched.value || '').trim();
+      if (!st) return { ok: false, message: 'Enter the stitched image URL to generate the iframe code.' };
+      const stitchedHref = normalizeHttpImageUrl(st);
+      if (!stitchedHref) {
+        return { ok: false, message: 'The stitched URL must use http:// or https://.' };
+      }
+      u.searchParams.set('stitched', stitchedHref);
+    } else {
+      const lt = (embedUrlLeft.value || '').trim();
+      const rt = (embedUrlRight.value || '').trim();
+      if (!lt || !rt) {
+        return { ok: false, message: 'Enter both image URLs above to generate the iframe code.' };
+      }
+      const leftHref = normalizeHttpImageUrl(lt);
+      const rightHref = normalizeHttpImageUrl(rt);
+      if (!leftHref || !rightHref) {
+        return { ok: false, message: 'Both URLs must use http:// or https://.' };
+      }
+      u.searchParams.set('left', leftHref);
+      u.searchParams.set('right', rightHref);
+    }
+
     const srcAttr = u.href.replace(/"/g, '&quot;');
     const html = `<iframe\n  src="${srcAttr}"\n  title="Stereogram Viewer"\n  width="100%"\n  height="720"\n  style="border:0;"\n  loading="lazy"\n></iframe>`;
     return { ok: true, html };
   }
 
+  function syncEmbedModeUi() {
+    const stitched = embedMode.value === 'stitched';
+    embedFieldsPair.hidden = stitched;
+    embedFieldsStitched.hidden = !stitched;
+  }
+
   function refreshEmbedCodeOutput() {
-    const result = buildEmbedIframeHtml(embedUrlLeft.value, embedUrlRight.value);
+    syncEmbedModeUi();
+    const result = buildEmbedIframeHtml();
     embedCode.value = result.ok ? result.html : result.message;
   }
 
   function openEmbedModal() {
     if (isEmbedded) return;
-    embedUrlLeft.value  = isHttpPublicImageUrl(imgLeft.src) ? imgLeft.src : '';
-    embedUrlRight.value = isHttpPublicImageUrl(imgRight.src) ? imgRight.src : '';
+    closeLinkModal();
+    embedMode.value = 'pair';
+    syncEmbedModeUi();
+    embedUrlLeft.value   = isHttpPublicImageUrl(imgLeft.src) ? imgLeft.src : '';
+    embedUrlRight.value  = isHttpPublicImageUrl(imgRight.src) ? imgRight.src : '';
+    embedUrlStitched.value = '';
     refreshEmbedCodeOutput();
     embedModal.removeAttribute('hidden');
     (embedUrlLeft.value.trim() ? embedUrlRight : embedUrlLeft).focus();
@@ -157,6 +311,49 @@
 
   function closeEmbedModal() {
     embedModal.setAttribute('hidden', '');
+  }
+
+  function closeLinkModal() {
+    linkModal.setAttribute('hidden', '');
+  }
+
+  function syncLinkModalModeUi() {
+    const stitched = linkModalMode.value === 'stitched';
+    linkModalFieldsPair.hidden = stitched;
+    linkModalFieldsStitched.hidden = !stitched;
+  }
+
+  function openLinkModalFor(which) {
+    if (isEmbedded) return;
+    closeEmbedModal();
+    linkModalMode.value = which === 'stitched' ? 'stitched' : 'pair';
+    syncLinkModalModeUi();
+    linkModalUrlLeft.value = isHttpPublicImageUrl(imgLeft.src) ? imgLeft.src : '';
+    linkModalUrlRight.value = isHttpPublicImageUrl(imgRight.src) ? imgRight.src : '';
+    linkModalUrlStitched.value = '';
+    linkModal.removeAttribute('hidden');
+    const stitched = linkModalMode.value === 'stitched';
+    (stitched ? linkModalUrlStitched : linkModalUrlLeft).focus();
+  }
+
+  function submitLinkModal() {
+    if (linkModalMode.value === 'stitched') {
+      const u = normalizeHttpImageUrl(linkModalUrlStitched.value);
+      if (!u) {
+        alert('Enter a valid http(s) URL for the stitched image.');
+        return;
+      }
+      loadStitchedFromUrl(u);
+    } else {
+      const leftHref = normalizeHttpImageUrl(linkModalUrlLeft.value);
+      const rightHref = normalizeHttpImageUrl(linkModalUrlRight.value);
+      if (!leftHref || !rightHref) {
+        alert('Enter valid http(s) URLs for both images.');
+        return;
+      }
+      loadStereoPairFromHttpUrls(leftHref, rightHref);
+    }
+    closeLinkModal();
   }
 
   function maxFitWidth() {
@@ -336,15 +533,7 @@
   function loadFileObj(file, imgEl, side) {
     const reader = new FileReader();
     reader.onload = e => {
-      imgEl.onload = () => {
-        if (side === 'left')  leftLoaded  = true;
-        if (side === 'right') rightLoaded = true;
-        hint.classList.add('hidden');
-        updateImgWidth();
-        applyLayout();
-        centerRow();
-        resetImageZoom();
-      };
+      imgEl.onload = () => markStereoSideLoaded(side);
       imgEl.src = e.target.result;
     };
     reader.readAsDataURL(file);
@@ -356,22 +545,70 @@
       alert('Choose two images.');
       return;
     }
+    leftLoaded = false;
+    rightLoaded = false;
     loadFileObj(files[0], imgLeft,  'left');
     loadFileObj(files[1], imgRight, 'right');
+  });
+
+  fileStitched.addEventListener('change', () => {
+    const file = fileStitched.files?.[0];
+    if (!file) return;
+    leftLoaded = false;
+    rightLoaded = false;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const { left, right } = splitStitchedToDataUrls(img);
+          assignSplitPairFromDataUrls(left, right);
+        } catch (_) {
+          alert('Could not split that image.');
+        }
+      };
+      img.onerror = () => alert('Could not read that image.');
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    fileStitched.value = '';
+  });
+
+  function syncSourceModeUi() {
+    const link = sourceMode === 'link';
+    btnSourceUpload.classList.toggle('active', !link);
+    btnSourceUpload.setAttribute('aria-pressed', String(!link));
+    btnSourceLink.classList.toggle('active', link);
+    btnSourceLink.setAttribute('aria-pressed', String(link));
+  }
+
+  syncSourceModeUi();
+
+  btnChoosePair.addEventListener('click', () => {
+    if (sourceMode === 'upload') filePair.click();
+    else openLinkModalFor('pair');
+  });
+  btnChooseStitched.addEventListener('click', () => {
+    if (sourceMode === 'upload') fileStitched.click();
+    else openLinkModalFor('stitched');
+  });
+
+  btnSourceUpload.addEventListener('click', () => {
+    if (sourceMode === 'upload') return;
+    sourceMode = 'upload';
+    syncSourceModeUi();
+    closeLinkModal();
+  });
+  btnSourceLink.addEventListener('click', () => {
+    if (sourceMode === 'link') return;
+    sourceMode = 'link';
+    syncSourceModeUi();
   });
 
   // ── Example loader ─────────────────────────────────────────────────────
   function loadFromUrl(url, imgEl, side, options = {}) {
     const { crossOrigin: cors, onError } = options;
-    imgEl.onload = () => {
-      if (side === 'left')  leftLoaded  = true;
-      if (side === 'right') rightLoaded = true;
-      hint.classList.add('hidden');
-      updateImgWidth();
-      applyLayout();
-      centerRow();
-      resetImageZoom();
-    };
+    imgEl.onload = () => markStereoSideLoaded(side);
     imgEl.onerror = onError || null;
     if (cors) imgEl.crossOrigin = cors;
     else imgEl.removeAttribute('crossOrigin');
@@ -525,8 +762,10 @@
     btnEmbed.addEventListener('click', openEmbedModal);
     embedClose.addEventListener('click', closeEmbedModal);
     embedModalBackdrop.addEventListener('click', closeEmbedModal);
+    embedMode.addEventListener('change', refreshEmbedCodeOutput);
     embedUrlLeft.addEventListener('input', refreshEmbedCodeOutput);
     embedUrlRight.addEventListener('input', refreshEmbedCodeOutput);
+    embedUrlStitched.addEventListener('input', refreshEmbedCodeOutput);
     embedCopy.addEventListener('click', () => {
       const v = embedCode.value;
       if (!v.includes('<iframe')) return;
@@ -541,6 +780,20 @@
           document.execCommand('copy');
         } catch (_) { /* ignore */ }
       });
+    });
+
+    linkModalMode.addEventListener('change', syncLinkModalModeUi);
+    linkModalLoad.addEventListener('click', submitLinkModal);
+    linkModalClose.addEventListener('click', closeLinkModal);
+    linkModalBackdrop.addEventListener('click', closeLinkModal);
+    linkModalUrlLeft.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitLinkModal();
+    });
+    linkModalUrlRight.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitLinkModal();
+    });
+    linkModalUrlStitched.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitLinkModal();
     });
   }
 
@@ -715,6 +968,11 @@
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────
   window.addEventListener('keydown', (e) => {
+    if (!linkModal.hasAttribute('hidden') && e.key === 'Escape') {
+      e.preventDefault();
+      closeLinkModal();
+      return;
+    }
     if (!embedModal.hasAttribute('hidden') && e.key === 'Escape') {
       e.preventDefault();
       closeEmbedModal();
@@ -754,23 +1012,23 @@
 
   // ── Init ───────────────────────────────────────────────────────────────
   if (isEmbedded) {
-    const pair = parseQueryStereoPair();
-    if (pair) {
-      leftLoaded  = false;
-      rightLoaded = false;
-      loadFromUrl(pair.left, imgLeft, 'left', {
-        crossOrigin: 'anonymous',
-        onError: () => { onEmbedImageLoadError('left'); },
-      });
-      loadFromUrl(pair.right, imgRight, 'right', {
-        crossOrigin: 'anonymous',
-        onError: () => { onEmbedImageLoadError('right'); },
-      });
+    const cfg = parseEmbedStereoParams();
+    if (cfg?.mode === 'stitched') {
+      loadStitchedFromUrl(cfg.url);
+    } else if (cfg?.mode === 'pair') {
+      loadStereoPairFromHttpUrls(cfg.left, cfg.right);
+    } else if (cfg?.badEmbed) {
+      const p = hint.querySelector('p');
+      const sm = hint.querySelector('small');
+      if (p) p.textContent = 'This embed URL is not valid.';
+      if (sm) sm.textContent = 'Use http(s) URLs for ?left=&right= or ?stitched=.';
     } else {
       const p = hint.querySelector('p');
       const sm = hint.querySelector('small');
       if (p) p.textContent = 'This embed needs image URLs in the iframe address.';
-      if (sm) sm.textContent = 'Use ?left=https://…&right=https://… (encode with encodeURIComponent).';
+      if (sm) {
+        sm.textContent = 'Use ?left=https://…&right=https://… or ?stitched=https://… for one side-by-side image. Encode values with encodeURIComponent.';
+      }
     }
   }
 
